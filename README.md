@@ -1,75 +1,127 @@
-# React + TypeScript + Vite
+﻿# High-Concurrency Flash-Sale E-Commerce Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Lab 02 - Web Application Development | Homework 3
 
-Currently, two official plugins are available:
+A React and TypeScript educational flash-sale application demonstrating countdown timing, inventory reservation, and stock consistency.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 1. Objectives
 
-## React Compiler
+- Implement a drift-resistant countdown using Date.now().
+- Prevent inventory overselling in a single JavaScript simulation.
+- Reserve stock temporarily before payment.
+- Release stock after cancellation or reservation expiry.
+- Reject new reservations after the sale deadline.
+- Verify inventory consistency with reproducible tests.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 2. Technology Stack
 
-## Expanding the ESLint configuration
+- React
+- TypeScript
+- Vite
+- CSS
+- Git and GitHub
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 3. Core Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Countdown
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The useCountdown hook calculates remaining time from the current timestamp instead of decrementing a counter. This reduces accumulated timer drift.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Inventory State Machine
 
+The InventoryMachine supports:
+
+- reserve(): Reserve available inventory.
+- pay(): Complete a valid reservation.
+- cancel(): Cancel a reservation and release stock.
+- expireReservations(): Release expired reservations.
+- setSaleEndTime(): Configure the sale deadline.
+
+### User Interface
+
+The application displays available, reserved, and sold stock. Users can reserve, pay for, or cancel a reservation.
+
+New reservations are blocked after the sale deadline.
+
+## 4. Project Structure
+
+```text
+src/
+  components/FlashSaleProduct.tsx
+  engine/inventory-machine.ts
+  engine/inventory-test.ts
+  hooks/useCountdown.ts
+  types/flash-sale-contract.ts
+  App.tsx
+  main.tsx
+
+AI_FAILURE_AUDIT.md
+TASK_DECOMPOSITION.md
+project-rules.md
+README.md
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## 5. Installation
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Requirements: Node.js and npm.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
+
+Open the local address displayed by Vite.
+
+## 6. Testing
+
+Production build:
+
+```bash
+npm run build
+```
+
+ESLint:
+
+```bash
+npm run lint
+```
+
+The development application executes three checks and reports their results in the browser console:
+
+1. Inventory consistency: 100 reservation attempts against limited stock.
+2. Reservation lifecycle: payment, cancellation, and expiration.
+3. Sale deadline: requests before, at, and after the deadline.
+
+All three tests passed during development.
+
+The production build also completed successfully.
+
+## 7. AI Failure Audit
+
+See AI_FAILURE_AUDIT.md for three documented development problems:
+
+1. Missing React component props caused TypeScript error TS2322.
+2. Countdown and inventory deadline validation required integration.
+3. Saved source files did not match the intended updated implementation.
+
+The audit explains the observed issues, corrections, and verification steps.
+
+## 8. Limitations
+
+This project is a single-browser educational simulation.
+
+Inventory is stored in application memory. The project does not implement database transactions, persistent stock, distributed locks, or concurrency protection across multiple servers and browsers.
+
+Production flash-sale systems require server-side inventory enforcement, transactional storage, and additional load testing.
+
+## 9. Documentation
+
+- project-rules.md: Development rules.
+- TASK_DECOMPOSITION.md: Implementation plan.
+- AI_FAILURE_AUDIT.md: AI-assisted development audit.
+
+## 10. Conclusion
+
+The project demonstrates flash-sale countdown logic, inventory state transitions, deadline enforcement, and automated consistency checks.
+
+AI-assisted code was reviewed and validated through testing and production builds.
