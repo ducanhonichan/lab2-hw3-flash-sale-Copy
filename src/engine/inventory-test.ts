@@ -22,12 +22,7 @@ export function runInventoryTest(): void {
   // Simulate 100 customers competing for 10 items.
   for (let i = 1; i <= 100; i++) {
     results.push(
-      machine.reserve(
-        `USER-${i}`,
-        1,
-        now,
-        60_000
-      )
+      machine.reserve(`USER-${i}`, 1, now, 60_000)
     );
   }
 
@@ -75,11 +70,6 @@ export function runInventoryTest(): void {
   }
 }
 
-
-
-
-
-
 export function runReservationLifecycleTest(): void {
   const product: FlashSaleProduct = {
     id: "FLASH-LIFECYCLE",
@@ -97,12 +87,14 @@ export function runReservationLifecycleTest(): void {
 
   // Test 1: Successful payment
   const first = machine.reserve("USER-A", 1, now, 60_000);
+
   const paid = first.reservation
     ? machine.pay(first.reservation.id, now + 1_000)
     : false;
 
   // Test 2: Cancellation releases inventory
   const second = machine.reserve("USER-B", 1, now, 60_000);
+
   const cancelled = second.reservation
     ? machine.cancel(second.reservation.id, now + 2_000)
     : false;
@@ -133,6 +125,7 @@ export function runReservationLifecycleTest(): void {
   console.log("Available stock:", stock.availableStock);
   console.log("Reserved stock:", stock.reservedStock);
   console.log("Sold stock:", stock.soldStock);
+
   console.log(
     passed
       ? "PASS: Reservation lifecycle is consistent."
@@ -141,5 +134,100 @@ export function runReservationLifecycleTest(): void {
 
   if (!passed) {
     throw new Error("Reservation lifecycle test failed");
+  }
+}
+
+// Test reservations before, at, and after the sale deadline.
+export function runSaleDeadlineTest(): void {
+  const product: FlashSaleProduct = {
+    id: "FLASH-DEADLINE",
+    name: "Deadline Test Product",
+    originalPrice: 1000000,
+    salePrice: 499000,
+    totalStock: 5,
+    availableStock: 5,
+    reservedStock: 0,
+    soldStock: 0,
+  };
+
+  const machine = new InventoryMachine(product);
+
+  // Use a fixed timestamp for repeatable tests.
+  const saleEndTime = 1_800_000_000_000;
+
+  machine.setSaleEndTime(saleEndTime);
+
+  // One millisecond before the deadline.
+  const before = machine.reserve(
+    "USER-BEFORE",
+    1,
+    saleEndTime - 1,
+    30_000
+  );
+
+  const stockBeforeRejection =
+    machine.getSnapshot().product;
+
+  // Exactly at the deadline.
+  const atDeadline = machine.reserve(
+    "USER-AT",
+    1,
+    saleEndTime,
+    30_000
+  );
+
+  // One millisecond after the deadline.
+  const after = machine.reserve(
+    "USER-AFTER",
+    1,
+    saleEndTime + 1,
+    30_000
+  );
+
+  const snapshot = machine.getSnapshot();
+  const stock = snapshot.product;
+
+  const stockUnchanged =
+    stock.availableStock ===
+      stockBeforeRejection.availableStock &&
+    stock.reservedStock ===
+      stockBeforeRejection.reservedStock &&
+    stock.soldStock ===
+      stockBeforeRejection.soldStock;
+
+  const stockInvariant =
+    stock.availableStock +
+      stock.reservedStock +
+      stock.soldStock ===
+    stock.totalStock;
+
+  const passed =
+    before.status === "SUCCESS" &&
+    atDeadline.status === "SALE_ENDED" &&
+    after.status === "SALE_ENDED" &&
+    stockUnchanged &&
+    stockInvariant &&
+    stock.availableStock === 4 &&
+    stock.reservedStock === 1 &&
+    stock.soldStock === 0;
+
+  console.log("=== FLASH SALE DEADLINE TEST ===");
+  console.log("Before deadline:", before.status);
+  console.log("At deadline:", atDeadline.status);
+  console.log("After deadline:", after.status);
+  console.log("Stock unchanged after rejection:", stockUnchanged);
+  console.log("Total stock invariant:", stockInvariant);
+  console.log("Available stock:", stock.availableStock);
+  console.log("Reserved stock:", stock.reservedStock);
+  console.log("Sold stock:", stock.soldStock);
+
+  console.log(
+    passed
+      ? "PASS: Sale deadline is enforced correctly."
+      : "FAIL: Sale deadline validation failed."
+  );
+
+  if (!passed) {
+    throw new Error("Flash sale deadline test failed");
   }
 }

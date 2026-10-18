@@ -1,6 +1,7 @@
-
+﻿
 import { useState } from "react";
 import { useCountdown } from "./hooks/useCountdown";
+import FlashSaleProduct from "./components/FlashSaleProduct";
 
 function App() {
   const [endTime, setEndTime] = useState(
@@ -26,12 +27,14 @@ function App() {
         alignItems: "center",
         justifyContent: "center",
         gap: "20px",
+        padding: "24px",
+        boxSizing: "border-box",
         background: "#0f172a",
         color: "white",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <h1>⚡ FLASH SALE 11.11 ⚡</h1>
+      <h1>âš¡ FLASH SALE 11.11 âš¡</h1>
 
       <p>High-Concurrency Flash-Sale Engine</p>
 
@@ -73,8 +76,11 @@ function App() {
       >
         Restart 5-Minute Countdown
       </button>
+
+      <FlashSaleProduct isSaleEnded={isExpired} saleEndTime={endTime} />
     </main>
   );
 }
 
 export default App;
+

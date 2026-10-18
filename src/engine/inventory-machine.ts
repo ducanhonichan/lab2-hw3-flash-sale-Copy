@@ -11,6 +11,9 @@ export class InventoryMachine {
   private reservations = new Map<string, InventoryReservation>();
   private nextReservationId = 1;
 
+  // Sale deadline is optional to preserve existing tests.
+  private saleEndTime: number | null = null;
+
   constructor(product: FlashSaleProduct) {
     if (
       !Number.isSafeInteger(product.totalStock) ||
@@ -23,6 +26,15 @@ export class InventoryMachine {
     }
 
     this.product = { ...product };
+  }
+
+  // Set the deadline used by the inventory engine.
+  setSaleEndTime(endTime: number): void {
+    if (!Number.isFinite(endTime)) {
+      throw new Error("Invalid sale end time");
+    }
+
+    this.saleEndTime = endTime;
   }
 
   getSnapshot(): InventorySnapshot {
@@ -52,9 +64,24 @@ export class InventoryMachine {
       throw new Error("Invalid reservation request");
     }
 
+    // Release reservations that have already expired.
     this.expireReservations(now);
 
-    const existing = Array.from(this.reservations.values()).find(
+    // Reject new reservations after the sale deadline.
+    if (
+      this.saleEndTime !== null &&
+      now >= this.saleEndTime
+    ) {
+      return {
+        status: "SALE_ENDED",
+        message:
+          "Flash Sale has ended. New reservations are closed.",
+      };
+    }
+
+    const existing = Array.from(
+      this.reservations.values()
+    ).find(
       (reservation) =>
         reservation.userId === userId &&
         reservation.status === "RESERVED"
@@ -86,7 +113,11 @@ export class InventoryMachine {
 
     this.product.availableStock -= quantity;
     this.product.reservedStock += quantity;
-    this.reservations.set(reservation.id, reservation);
+
+    this.reservations.set(
+      reservation.id,
+      reservation
+    );
 
     return {
       status: "SUCCESS",
@@ -98,31 +129,52 @@ export class InventoryMachine {
   pay(reservationId: string, now: number): boolean {
     this.expireReservations(now);
 
-    const reservation = this.reservations.get(reservationId);
+    const reservation =
+      this.reservations.get(reservationId);
 
-    if (!reservation || reservation.status !== "RESERVED") {
+    if (
+      !reservation ||
+      reservation.status !== "RESERVED"
+    ) {
       return false;
     }
 
+    // Existing valid reservations can still be paid
+    // after the sale closes, before their own expiry.
     reservation.status = "PAID";
-    this.product.reservedStock -= reservation.quantity;
-    this.product.soldStock += reservation.quantity;
+
+    this.product.reservedStock -=
+      reservation.quantity;
+
+    this.product.soldStock +=
+      reservation.quantity;
 
     return true;
   }
 
-  cancel(reservationId: string, now: number): boolean {
+  cancel(
+    reservationId: string,
+    now: number
+  ): boolean {
     this.expireReservations(now);
 
-    const reservation = this.reservations.get(reservationId);
+    const reservation =
+      this.reservations.get(reservationId);
 
-    if (!reservation || reservation.status !== "RESERVED") {
+    if (
+      !reservation ||
+      reservation.status !== "RESERVED"
+    ) {
       return false;
     }
 
     reservation.status = "CANCELLED";
-    this.product.reservedStock -= reservation.quantity;
-    this.product.availableStock += reservation.quantity;
+
+    this.product.reservedStock -=
+      reservation.quantity;
+
+    this.product.availableStock +=
+      reservation.quantity;
 
     return true;
   }
@@ -130,14 +182,20 @@ export class InventoryMachine {
   expireReservations(now: number): number {
     let expiredCount = 0;
 
-    for (const reservation of this.reservations.values()) {
+    for (const reservation of
+      this.reservations.values()) {
       if (
         reservation.status === "RESERVED" &&
         now >= reservation.expiresAt
       ) {
         reservation.status = "EXPIRED";
-        this.product.reservedStock -= reservation.quantity;
-        this.product.availableStock += reservation.quantity;
+
+        this.product.reservedStock -=
+          reservation.quantity;
+
+        this.product.availableStock +=
+          reservation.quantity;
+
         expiredCount++;
       }
     }
@@ -145,3 +203,4 @@ export class InventoryMachine {
     return expiredCount;
   }
 }
+    
