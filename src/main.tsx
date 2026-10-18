@@ -8,3 +8,19 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+
+
+
+
+
+
+
+
+import {
+  runInventoryTest,
+  runReservationLifecycleTest,
+} from "./engine/inventory-test";
+
+runInventoryTest();
+runReservationLifecycleTest();
